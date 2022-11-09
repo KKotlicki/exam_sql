@@ -5,6 +5,8 @@ SELECT postgis_full_version();
 CREATE TYPE SL_KlasaCieku AS ENUM ('rzeka', 'kanal', 'struga');
 
 CREATE TYPE SL_KlasaZbiornika AS ENUM ('jezioro', 'staw', 'morze');
+
+CREATE TABLE Rzeka (
     rzeka_id serial PRIMARY KEY,
     nazwa varchar(255),
     kod_MPHP varchar(255)
