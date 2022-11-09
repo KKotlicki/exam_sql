@@ -6,6 +6,10 @@
 -- on host: db.pwr.edu.pl
 -- on port: 5432
 
+-- load postgis
+CREATE EXTENSION postgis;
+SELECT postgis_full_version();
+
 -- generate enum SL_KlasaCieku with fields: 'rzeka', 'kanal', 'struga'
 CREATE TYPE SL_KlasaCieku AS ENUM ('rzeka', 'kanal', 'struga');
 
