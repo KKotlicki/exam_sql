@@ -1,77 +1,88 @@
 -- Using postgis
+-- Using postgreSql
+-- Using pgAdmin
+-- on user: s310958
+-- on database: s310958
+-- on host: db.pwr.edu.pl
+-- on port: 5432
 
--- generate enum sl_rodzaj with fields: 'tramwajowy', 'multimodalny', 'autobusowy'
-CREATE TYPE sl_rodzaj AS ENUM ('tramwajowy', 'multimodalny', 'autobusowy');
+-- generate enum SL_KlasaCieku with fields: 'rzeka', 'kanal', 'struga'
+CREATE TYPE SL_KlasaCieku AS ENUM ('rzeka', 'kanal', 'struga');
 
--- generate enum sl_kategoria with fields: 'zwykla', 'przyspieszona', 'ekspresowa'
-CREATE TYPE sl_kategoria AS ENUM ('zwykla', 'przyspieszona', 'ekspresowa');
+-- generate enum SL_KlasaZbiornika with fields: 'jezioro', 'staw', 'morze'
+CREATE TYPE SL_KlasaZbiornika AS ENUM ('jezioro', 'staw', 'morze');
 
--- generate table ulica with fields [ulica_id integer, geom GM_LineString, nazwa varchar(255), przepustowosc integer] and table przystanek with fields: [przystanek_id integer, geom GM_Point, nazwa varchar(255), rodzaj sl_rodzaj] and relation ulica on update cascade 1 - 0..* przystanek
-CREATE TABLE ulica (
-    ulica_id serial PRIMARY KEY,
-    geom GM_LineString,
+-- generate table Rzeka with fields [rzeka_id integer, nazwa varchar(255), kod_MPHP varchar(255)] and feature type SegmentCieku with fields: [segment_cieku_id integer, geometria GM_LineString, klasa_cieku SL_KlasaCieku, szerokosc integer, dlugosc integer] and relation Rzeka 0..* - 1..* SegmentCieku
+CREATE TABLE Rzeka (
+    rzeka_id serial PRIMARY KEY,
     nazwa varchar(255),
-    przepustowosc integer
+    kod_MPHP varchar(255)
 );
 
-CREATE TABLE przystanek (
-    przystanek_id serial PRIMARY KEY,
-    geom GM_Point,
-    nazwa varchar(255),
-    rodzaj sl_rodzaj
-);
-
-ALTER TABLE ulica ADD CONSTRAINT ulica_geom_check CHECK (ST_IsValid(geom));
-ALTER TABLE przystanek ADD CONSTRAINT przystanek_geom_check CHECK (ST_IsValid(geom));
-
-CREATE TABLE ulica_przystanek (
-    ulica_id integer REFERENCES ulica (ulica_id) ON UPDATE CASCADE,
-    przystanek_id integer REFERENCES przystanek (przystanek_id) ON UPDATE CASCADE
-);
-
--- generate table linia with fields [linia_id integer, geom GM_LineString, nazwa varchar(255), kategoria sl_kategoria, dlugosc integer] and relation linia 0..* - 2..* przystanek
-CREATE TABLE linia (
-    linia_id serial PRIMARY KEY,
-    geom GM_LineString,
-    nazwa varchar(255),
-    kategoria sl_kategoria,
+CREATE TABLE SegmentCieku (
+    segment_cieku_id serial PRIMARY KEY,
+    geometria GM_LineString,
+    klasa_cieku SL_KlasaCieku,
+    szerokosc integer,
     dlugosc integer
 );
 
-ALTER TABLE linia ADD CONSTRAINT linia_geom_check CHECK (ST_IsValid(geom));
+ALTER TABLE SegmentCieku ADD CONSTRAINT SegmentCieku_geometria_check CHECK (ST_IsValid(geometria));
 
-CREATE TABLE linia_przystanek (
-    linia_id integer REFERENCES linia (linia_id) ON UPDATE CASCADE,
-    przystanek_id integer REFERENCES przystanek (przystanek_id) ON UPDATE CASCADE
+CREATE TABLE Rzeka_SegmentCieku (
+    rzeka_id integer REFERENCES Rzeka (rzeka_id),
+    segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id)
 );
 
--- generate table zespol with fields [zespol_id integer, nazwa varchar(255), liczba_pracownikow integer] and relation zespol 1 - 0..* linia
-CREATE TABLE zespol (
-    zespol_id serial PRIMARY KEY,
+-- generate feature type ZbiornikWodny with fields [zbiornik_wodny_id integer, geometria GM_Polygon, nazwa varchar(255), klasa_zbiornika SL_KlasaZbiornika, powierzchnia integer] and relation ZbiornikWodny 0..1 wpływa_do 0..* SegmentCieku and relation SegmentCieku 0..* wypływa_z 0..1 ZbiornikWodny
+CREATE TABLE ZbiornikWodny (
+    zbiornik_wodny_id serial PRIMARY KEY,
+    geometria GM_Polygon,
     nazwa varchar(255),
-    liczba_pracownikow integer
+    klasa_zbiornika SL_KlasaZbiornika,
+    powierzchnia integer
 );
 
-CREATE TABLE zespol_linia (
-    zespol_id integer REFERENCES zespol (zespol_id) ON UPDATE CASCADE,
-    linia_id integer REFERENCES linia (linia_id) ON UPDATE CASCADE
+ALTER TABLE ZbiornikWodny ADD CONSTRAINT ZbiornikWodny_geometria_check CHECK (ST_IsValid(geometria));
+
+CREATE TABLE ZbiornikWodny_SegmentCieku (
+    zbiornik_wodny_id integer REFERENCES ZbiornikWodny (zbiornik_wodny_id),
+    segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id)
 );
 
--- Napisz w języku SQL zapytanie, które wyświetli liczbę przystanków leżących na trasie linii o nazwie „17”
-SELECT COUNT(*) FROM linia_przystanek lp
-JOIN linia l ON lp.linia_id = l.linia_id
-WHERE l.nazwa = '17';
+CREATE TABLE SegmentCieku_ZbiornikWodny (
+    segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id),
+    zbiornik_wodny_id integer REFERENCES ZbiornikWodny (zbiornik_wodny_id)
+);
 
--- Napisz w języku SQL zapytanie, które pokaże nazwy ulic znajdujących się w odległości do 100 m od przystanków obsługujących najwięcej linii.
-SELECT u.nazwa FROM ulica u
-JOIN ulica_przystanek up ON u.ulica_id = up.ulica_id
-JOIN przystanek p ON up.przystanek_id = p.przystanek_id
-JOIN linia_przystanek lp ON p.przystanek_id = lp.przystanek_id
-GROUP BY u.nazwa
-HAVING COUNT(lp.linia_id) = (SELECT MAX(count) FROM (SELECT COUNT(lp.linia_id) AS count FROM ulica_przystanek up
-JOIN przystanek p ON up.przystanek_id = p.przystanek_id
-JOIN linia_przystanek lp ON p.przystanek_id = lp.przystanek_id
-GROUP BY up.przystanek_id) AS max_count);
+-- generate feature type ZarzadGospodarkiWodnej with fields [zarzad_gospodarki_wodnej_id integer, geometria GM_Polygon, nazwa varchar(255), powierzchnia integer] and relation ZarzadGospodarkiWodnej 1 - 1..* ZbiornikWodny and relation ZarzadGospodarkiWodnej 1 - 1..* SegmentCieku
+CREATE TABLE ZarzadGospodarkiWodnej (
+    zarzad_gospodarki_wodnej_id serial PRIMARY KEY,
+    geometria GM_Polygon,
+    nazwa varchar(255),
+    powierzchnia integer
+);
 
+ALTER TABLE ZarzadGospodarkiWodnej ADD CONSTRAINT ZarzadGospodarkiWodnej_geometria_check CHECK (ST_IsValid(geometria));
+
+CREATE TABLE ZarzadGospodarkiWodnej_ZbiornikWodny (
+    zarzad_gospodarki_wodnej_id integer REFERENCES ZarzadGospodarkiWodnej (zarzad_gospodarki_wodnej_id),
+    zbiornik_wodny_id integer REFERENCES ZbiornikWodny (zbiornik_wodny_id)
+);
+
+CREATE TABLE ZbiornikWodny_ZarzadGospodarkiWodnej (
+    zbiornik_wodny_id integer REFERENCES ZbiornikWodny (zbiornik_wodny_id),
+    zarzad_gospodarki_wodnej_id integer REFERENCES ZarzadGospodarkiWodnej (zarzad_gospodarki_wodnej_id)
+);
+
+CREATE TABLE ZarzadGospodarkiWodnej_SegmentCieku (
+    zarzad_gospodarki_wodnej_id integer REFERENCES ZarzadGospodarkiWodnej (zarzad_gospodarki_wodnej_id),
+    segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id)
+);
+
+CREATE TABLE SegmentCieku_ZarzadGospodarkiWodnej (
+    segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id),
+    zarzad_gospodarki_wodnej_id integer REFERENCES ZarzadGospodarkiWodnej (zarzad_gospodarki_wodnej_id)
+);
 
 
