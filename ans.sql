@@ -33,14 +33,14 @@ CREATE TABLE SegmentCieku (
 
 ALTER TABLE SegmentCieku ADD COLUMN geom geometry(LINESTRING, 2180);
 
-ALTER TABLE SegmentCieku ADD CONSTRAINT SegmentCieku_geometria_check CHECK (ST_IsValid(geometria));
+ALTER TABLE SegmentCieku ADD CONSTRAINT SegmentCieku_geom_check CHECK (ST_IsValid(geom));
 
 CREATE TABLE Rzeka_SegmentCieku (
     rzeka_id integer REFERENCES Rzeka (rzeka_id),
     segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id)
 );
 
--- generate feature type ZbiornikWodny with fields [zbiornik_wodny_id integer, geometria GM_Polygon, nazwa varchar(255), klasa_zbiornika SL_KlasaZbiornika, powierzchnia integer] and relation ZbiornikWodny 0..1 wpływa_do 0..* SegmentCieku and relation SegmentCieku 0..* wypływa_z 0..1 ZbiornikWodny
+-- generate feature type ZbiornikWodny with fields [zbiornik_wodny_id integer, geom GM_Polygon, nazwa varchar(255), klasa_zbiornika SL_KlasaZbiornika, powierzchnia integer] and relation ZbiornikWodny 0..1 wpływa_do 0..* SegmentCieku and relation SegmentCieku 0..* wypływa_z 0..1 ZbiornikWodny
 CREATE TABLE ZbiornikWodny (
     zbiornik_wodny_id serial PRIMARY KEY,
     nazwa varchar(255),
@@ -48,25 +48,25 @@ CREATE TABLE ZbiornikWodny (
     powierzchnia integer
 );
 
-ALTER TABLE ZbiornikWodny ADD COLUMN geometria geometry(POLYGON, 2180);
+ALTER TABLE ZbiornikWodny ADD COLUMN geom geometry(POLYGON, 2180);
 
-ALTER TABLE ZbiornikWodny ADD CONSTRAINT ZbiornikWodny_geometria_check CHECK (ST_IsValid(geometria));
+ALTER TABLE ZbiornikWodny ADD CONSTRAINT ZbiornikWodny_geom_check CHECK (ST_IsValid(geom));
 
 CREATE TABLE ZbiornikWodny_SegmentCieku (
     zbiornik_wodny_id integer REFERENCES ZbiornikWodny (zbiornik_wodny_id),
     segment_cieku_id integer REFERENCES SegmentCieku (segment_cieku_id)
 );
 
--- generate feature type ZarzadGospodarkiWodnej with fields [zarzad_gospodarki_wodnej_id integer, geometria GM_Polygon, nazwa varchar(255), powierzchnia integer] and relation ZarzadGospodarkiWodnej 1 - 1..* ZbiornikWodny and relation ZarzadGospodarkiWodnej 1 - 1..* SegmentCieku
+-- generate feature type ZarzadGospodarkiWodnej with fields [zarzad_gospodarki_wodnej_id integer, geom GM_Polygon, nazwa varchar(255), powierzchnia integer] and relation ZarzadGospodarkiWodnej 1 - 1..* ZbiornikWodny and relation ZarzadGospodarkiWodnej 1 - 1..* SegmentCieku
 CREATE TABLE ZarzadGospodarkiWodnej (
     zarzad_gospodarki_wodnej_id serial PRIMARY KEY,
     nazwa varchar(255),
     powierzchnia integer
 );
 
-ALTER TABLE ZarzadGospodarkiWodnej ADD COLUMN geometria geometry(POLYGON, 2180);
+ALTER TABLE ZarzadGospodarkiWodnej ADD COLUMN geom geometry(POLYGON, 2180);
 
-ALTER TABLE ZarzadGospodarkiWodnej ADD CONSTRAINT ZarzadGospodarkiWodnej_geometria_check CHECK (ST_IsValid(geometria));
+ALTER TABLE ZarzadGospodarkiWodnej ADD CONSTRAINT ZarzadGospodarkiWodnej_geom_check CHECK (ST_IsValid(geom));
 
 CREATE TABLE ZarzadGospodarkiWodnej_ZbiornikWodny (
     zarzad_gospodarki_wodnej_id integer REFERENCES ZarzadGospodarkiWodnej (zarzad_gospodarki_wodnej_id),
