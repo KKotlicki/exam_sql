@@ -16,6 +16,9 @@ CREATE TYPE SL_KlasaCieku AS ENUM ('rzeka', 'kanal', 'struga');
 -- generate enum SL_KlasaZbiornika with fields: 'jezioro', 'staw', 'morze'
 CREATE TYPE SL_KlasaZbiornika AS ENUM ('jezioro', 'staw', 'morze');
 
+-- Enable use of GM_Polygon and GM_LineString
+SELECT postgis_enable_outdb_rasters();
+
 -- generate table Rzeka with fields [rzeka_id integer, nazwa varchar(255), kod_MPHP varchar(255)] and feature type SegmentCieku with fields: [segment_cieku_id integer, geometria GM_LineString, klasa_cieku SL_KlasaCieku, szerokosc integer, dlugosc integer] and relation Rzeka 0..* - 1..* SegmentCieku
 CREATE TABLE Rzeka (
     rzeka_id serial PRIMARY KEY,
